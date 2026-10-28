@@ -1,0 +1,9 @@
+{
+  "name": "datei-teiler",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Einfacher Datei-Upload und -Download im Browser",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

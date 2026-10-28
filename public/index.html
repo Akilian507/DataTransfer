@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Datei-Teiler</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --card-2: #273449;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #0ea5e9;
+      --danger: #f87171;
+      --radius: 14px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0%, var(--bg) 55%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    main { width: 100%; max-width: 720px; }
+    header { text-align: center; margin-bottom: 28px; }
+    header h1 { margin: 0 0 6px; font-size: 1.9rem; }
+    header p { margin: 0; color: var(--muted); }
+    .card {
+      background: var(--card);
+      border: 1px solid #33415580;
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 18px 40px -22px #000a;
+    }
+    .card + .card { margin-top: 22px; }
+    #dropzone {
+      border: 2px dashed #475569;
+      border-radius: var(--radius);
+      padding: 38px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    #dropzone:hover, #dropzone.dragover {
+      border-color: var(--accent);
+      background: #38bdf80d;
+    }
+    #dropzone strong { color: var(--accent); }
+    #dropzone p { margin: 8px 0 0; color: var(--muted); font-size: .9rem; }
+    #fileInput { display: none; }
+    #progressWrap {
+      margin-top: 16px;
+      display: none;
+    }
+    #progressWrap.visible { display: block; }
+    #progressLabel {
+      display: flex;
+      justify-content: space-between;
+      font-size: .85rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    #progressBar {
+      height: 8px;
+      border-radius: 999px;
+      background: var(--card-2);
+      overflow: hidden;
+    }
+    #progressFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      transition: width .15s;
+    }
+    #status { margin-top: 10px; font-size: .9rem; min-height: 1.2em; }
+    #status.error { color: var(--danger); }
+    #status.success { color: #4ade80; }
+    .list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .list-head h2 { margin: 0; font-size: 1.05rem; }
+    .list-head span { color: var(--muted); font-size: .85rem; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 10px;
+      border-radius: 10px;
+    }
+    li + li { border-top: 1px solid #33415566; }
+    li:hover { background: var(--card-2); }
+    .icon {
+      flex: none;
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      background: var(--card-2);
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
+    .meta { flex: 1; min-width: 0; }
+    .meta .name {
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .meta .sub { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+    .btn {
+      flex: none;
+      border: 0;
+      border-radius: 9px;
+      padding: 9px 14px;
+      font: inherit;
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #04121f;
+      transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.12); }
+    .btn.danger {
+      background: transparent;
+      color: var(--danger);
+      padding: 9px 10px;
+    }
+    .btn.danger:hover { background: #f871711a; }
+    .empty { color: var(--muted); text-align: center; padding: 26px 0; font-size: .95rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>📁 Datei-Teiler</h1>
+      <p>Datei hochladen – andere können sie mit einem Klick herunterladen.</p>
+    </header>
+
+    <section class="card">
+      <div id="dropzone" tabindex="0" role="button" aria-label="Datei auswählen">
+        <div><strong>Datei hierher ziehen</strong> oder klicken zum Auswählen</div>
+        <p>Maximale Dateigröße: 2 GB</p>
+      </div>
+      <input type="file" id="fileInput">
+      <div id="progressWrap">
+        <div id="progressLabel"><span id="progressName"></span><span id="progressPercent"></span></div>
+        <div id="progressBar"><div id="progressFill"></div></div>
+      </div>
+      <div id="status"></div>
+    </section>
+
+    <section class="card">
+      <div class="list-head">
+        <h2>Verfügbare Dateien</h2>
+        <span id="fileCount"></span>
+      </div>
+      <ul id="fileList"></ul>
+      <div class="empty" id="emptyState" hidden>Noch keine Dateien hochgeladen.</div>
+    </section>
+  </main>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const progressWrap = document.getElementById('progressWrap');
+    const progressName = document.getElementById('progressName');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressFill = document.getElementById('progressFill');
+    const statusEl = document.getElementById('status');
+    const fileList = document.getElementById('fileList');
+    const fileCount = document.getElementById('fileCount');
+    const emptyState = document.getElementById('emptyState');
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      const units = ['KB', 'MB', 'GB', 'TB'];
+      let value = bytes;
+      let unit = -1;
+      do { value /= 1024; unit++; } while (value >= 1024 && unit < units.length - 1);
+      return value.toFixed(value >= 10 ? 0 : 1) + ' ' + units[unit];
+    }
+
+    function formatDate(ms) {
+      return new Date(ms).toLocaleString('de-DE', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function setStatus(text, type) {
+      statusEl.textContent = text || '';
+      statusEl.className = type || '';
+    }
+
+    function iconFor(name) {
+      const ext = name.split('.').pop().toLowerCase();
+      if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return '🖼️';
+      if (['mp4', 'mkv', 'mov', 'webm'].includes(ext)) return '🎬';
+      if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return '🎵';
+      if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return '🗜️';
+      if (ext === 'pdf') return '📄';
+      if (['txt', 'md', 'doc', 'docx'].includes(ext)) return '📝';
+      if (['exe', 'msi', 'bat'].includes(ext)) return '⚙️';
+      return '📦';
+    }
+
+    async function refreshFiles() {
+      try {
+        const res = await fetch('/api/files');
+        const files = await res.json();
+        fileCount.textContent = files.length === 1 ? '1 Datei' : files.length + ' Dateien';
+        emptyState.hidden = files.length > 0;
+        fileList.innerHTML = '';
+        for (const file of files) {
+          const li = document.createElement('li');
+
+          const icon = document.createElement('div');
+          icon.className = 'icon';
+          icon.textContent = iconFor(file.name);
+
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          const nameEl = document.createElement('div');
+          nameEl.className = 'name';
+          nameEl.textContent = file.name;
+          nameEl.title = file.name;
+          const sub = document.createElement('div');
+          sub.className = 'sub';
+          sub.textContent = formatSize(file.size) + ' · ' + formatDate(file.modified);
+          meta.append(nameEl, sub);
+
+          const link = document.createElement('a');
+          link.className = 'btn';
+          link.href = '/download/' + encodeURIComponent(file.name);
+          link.textContent = 'Herunterladen';
+          link.setAttribute('download', file.name);
+
+          const del = document.createElement('button');
+          del.className = 'btn danger';
+          del.textContent = '✕';
+          del.title = 'Datei löschen';
+          del.addEventListener('click', async () => {
+            if (!confirm('„' + file.name + '“ löschen?')) return;
+            await fetch('/api/files/' + encodeURIComponent(file.name), { method: 'DELETE' });
+            refreshFiles();
+          });
+
+          li.append(icon, meta, link, del);
+          fileList.appendChild(li);
+        }
+      } catch {
+        fileCount.textContent = 'Verbindung fehlgeschlagen';
+      }
+    }
+
+    function uploadFile(file) {
+      if (!file) return;
+      if (file.size > 2 * 1024 ** 3) {
+        setStatus('Die Datei ist zu groß (max. 2 GB).', 'error');
+        return;
+      }
+
+      setStatus('');
+      progressWrap.classList.add('visible');
+      progressName.textContent = file.name;
+      progressPercent.textContent = '0 %';
+      progressFill.style.width = '0%';
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/api/upload');
+      xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        progressFill.style.width = percent + '%';
+        progressPercent.textContent = percent + ' %';
+      });
+
+      xhr.addEventListener('load', () => {
+        progressWrap.classList.remove('visible');
+        if (xhr.status >= 200 && xhr.status < 300) {
+          setStatus('„' + file.name + '“ wurde hochgeladen.', 'success');
+          refreshFiles();
+        } else {
+          let message = 'Upload fehlgeschlagen.';
+          try { message = JSON.parse(xhr.responseText).error || message; } catch {}
+          setStatus(message, 'error');
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        progressWrap.classList.remove('visible');
+        setStatus('Upload fehlgeschlagen (Verbindung unterbrochen).', 'error');
+      });
+
+      xhr.send(file);
+    }
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+    fileInput.addEventListener('change', () => {
+      uploadFile(fileInput.files[0]);
+      fileInput.value = '';
+    });
+
+    ['dragenter', 'dragover'].forEach((type) => {
+      dropzone.addEventListener(type, (event) => {
+        event.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+    });
+    ['dragleave', 'drop'].forEach((type) => {
+      dropzone.addEventListener(type, (event) => {
+        event.preventDefault();
+        dropzone.classList.remove('dragover');
+      });
+    });
+    dropzone.addEventListener('drop', (event) => {
+      const file = event.dataTransfer.files[0];
+      if (file) uploadFile(file);
+    });
+
+    refreshFiles();
+    setInterval(refreshFiles, 3000);
+  </script>
+</body>
+</html>
